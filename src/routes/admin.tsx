@@ -13,6 +13,8 @@ export const NAV: { to: string; label: string; icon: React.ComponentType<{ class
   { to: "/admin/finances", label: "Finances & Tarifs", icon: CreditCard, roles: ["super_admin", "accountant"] },
   { to: "/admin/support", label: "Support & Messagerie", icon: Headphones, roles: ["super_admin", "support_operator"] },
   { to: "/admin/users", label: "Utilisateurs & Quotas", icon: Users, roles: ["super_admin", "content_manager"] },
+  { to: "/admin/features", label: "Fonctionnalités", icon: ToggleRight, roles: ["super_admin", "content_manager"] },
+
   { to: "/admin/team", label: "Équipe & Rôles", icon: ShieldHalf, roles: ["super_admin"] },
   { to: "/admin/logs", label: "Journal d'audit", icon: ScrollText, roles: ["super_admin"] },
 ];
