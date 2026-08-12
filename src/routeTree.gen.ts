@@ -16,12 +16,16 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SubscribeRouteImport } from './routes/subscribe'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminFeaturesRouteImport } from './routes/admin.features'
 import { Route as AdminFinancesRouteImport } from './routes/admin.finances'
 import { Route as AdminLogsRouteImport } from './routes/admin.logs'
 import { Route as AdminSupportRouteImport } from './routes/admin.support'
 import { Route as AdminTeamRouteImport } from './routes/admin.team'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as SettingsProfileRouteImport } from './routes/settings.profile'
+import { Route as TemplatesIndexRouteImport } from './routes/templates.index'
+import { Route as TemplatesSlugRouteImport } from './routes/templates.$slug'
+import { Route as ApiPublicPaymentsSwychrWebhookRouteImport } from './routes/api.public.payments.swychr.webhook'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -58,6 +62,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminFeaturesRoute = AdminFeaturesRouteImport.update({
+  id: '/features',
+  path: '/features',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminFinancesRoute = AdminFinancesRouteImport.update({
   id: '/finances',
   path: '/finances',
@@ -88,6 +97,22 @@ const SettingsProfileRoute = SettingsProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => SettingsRoute,
 } as any)
+const TemplatesIndexRoute = TemplatesIndexRouteImport.update({
+  id: '/templates/',
+  path: '/templates/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TemplatesSlugRoute = TemplatesSlugRouteImport.update({
+  id: '/templates/$slug',
+  path: '/templates/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicPaymentsSwychrWebhookRoute =
+  ApiPublicPaymentsSwychrWebhookRouteImport.update({
+    id: '/api/public/payments/swychr/webhook',
+    path: '/api/public/payments/swychr/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -96,13 +121,17 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRouteWithChildren
   '/subscribe': typeof SubscribeRoute
   '/support': typeof SupportRoute
+  '/admin/features': typeof AdminFeaturesRoute
   '/admin/finances': typeof AdminFinancesRoute
   '/admin/logs': typeof AdminLogsRoute
   '/admin/support': typeof AdminSupportRoute
   '/admin/team': typeof AdminTeamRoute
   '/admin/users': typeof AdminUsersRoute
   '/settings/profile': typeof SettingsProfileRoute
+  '/templates/$slug': typeof TemplatesSlugRoute
   '/admin/': typeof AdminIndexRoute
+  '/templates/': typeof TemplatesIndexRoute
+  '/api/public/payments/swychr/webhook': typeof ApiPublicPaymentsSwychrWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -110,13 +139,17 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRouteWithChildren
   '/subscribe': typeof SubscribeRoute
   '/support': typeof SupportRoute
+  '/admin/features': typeof AdminFeaturesRoute
   '/admin/finances': typeof AdminFinancesRoute
   '/admin/logs': typeof AdminLogsRoute
   '/admin/support': typeof AdminSupportRoute
   '/admin/team': typeof AdminTeamRoute
   '/admin/users': typeof AdminUsersRoute
   '/settings/profile': typeof SettingsProfileRoute
+  '/templates/$slug': typeof TemplatesSlugRoute
   '/admin': typeof AdminIndexRoute
+  '/templates': typeof TemplatesIndexRoute
+  '/api/public/payments/swychr/webhook': typeof ApiPublicPaymentsSwychrWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -126,13 +159,17 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRouteWithChildren
   '/subscribe': typeof SubscribeRoute
   '/support': typeof SupportRoute
+  '/admin/features': typeof AdminFeaturesRoute
   '/admin/finances': typeof AdminFinancesRoute
   '/admin/logs': typeof AdminLogsRoute
   '/admin/support': typeof AdminSupportRoute
   '/admin/team': typeof AdminTeamRoute
   '/admin/users': typeof AdminUsersRoute
   '/settings/profile': typeof SettingsProfileRoute
+  '/templates/$slug': typeof TemplatesSlugRoute
   '/admin/': typeof AdminIndexRoute
+  '/templates/': typeof TemplatesIndexRoute
+  '/api/public/payments/swychr/webhook': typeof ApiPublicPaymentsSwychrWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -143,13 +180,17 @@ export interface FileRouteTypes {
     | '/settings'
     | '/subscribe'
     | '/support'
+    | '/admin/features'
     | '/admin/finances'
     | '/admin/logs'
     | '/admin/support'
     | '/admin/team'
     | '/admin/users'
     | '/settings/profile'
+    | '/templates/$slug'
     | '/admin/'
+    | '/templates/'
+    | '/api/public/payments/swychr/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -157,13 +198,17 @@ export interface FileRouteTypes {
     | '/settings'
     | '/subscribe'
     | '/support'
+    | '/admin/features'
     | '/admin/finances'
     | '/admin/logs'
     | '/admin/support'
     | '/admin/team'
     | '/admin/users'
     | '/settings/profile'
+    | '/templates/$slug'
     | '/admin'
+    | '/templates'
+    | '/api/public/payments/swychr/webhook'
   id:
     | '__root__'
     | '/'
@@ -172,13 +217,17 @@ export interface FileRouteTypes {
     | '/settings'
     | '/subscribe'
     | '/support'
+    | '/admin/features'
     | '/admin/finances'
     | '/admin/logs'
     | '/admin/support'
     | '/admin/team'
     | '/admin/users'
     | '/settings/profile'
+    | '/templates/$slug'
     | '/admin/'
+    | '/templates/'
+    | '/api/public/payments/swychr/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -188,6 +237,9 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRouteWithChildren
   SubscribeRoute: typeof SubscribeRoute
   SupportRoute: typeof SupportRoute
+  TemplatesSlugRoute: typeof TemplatesSlugRoute
+  TemplatesIndexRoute: typeof TemplatesIndexRoute
+  ApiPublicPaymentsSwychrWebhookRoute: typeof ApiPublicPaymentsSwychrWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -241,6 +293,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/features': {
+      id: '/admin/features'
+      path: '/features'
+      fullPath: '/admin/features'
+      preLoaderRoute: typeof AdminFeaturesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/finances': {
       id: '/admin/finances'
       path: '/finances'
@@ -283,10 +342,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsProfileRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/templates/': {
+      id: '/templates/'
+      path: '/templates'
+      fullPath: '/templates/'
+      preLoaderRoute: typeof TemplatesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/templates/$slug': {
+      id: '/templates/$slug'
+      path: '/templates/$slug'
+      fullPath: '/templates/$slug'
+      preLoaderRoute: typeof TemplatesSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/payments/swychr/webhook': {
+      id: '/api/public/payments/swychr/webhook'
+      path: '/api/public/payments/swychr/webhook'
+      fullPath: '/api/public/payments/swychr/webhook'
+      preLoaderRoute: typeof ApiPublicPaymentsSwychrWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 interface AdminRouteChildren {
+  AdminFeaturesRoute: typeof AdminFeaturesRoute
   AdminFinancesRoute: typeof AdminFinancesRoute
   AdminLogsRoute: typeof AdminLogsRoute
   AdminSupportRoute: typeof AdminSupportRoute
@@ -296,6 +377,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminFeaturesRoute: AdminFeaturesRoute,
   AdminFinancesRoute: AdminFinancesRoute,
   AdminLogsRoute: AdminLogsRoute,
   AdminSupportRoute: AdminSupportRoute,
@@ -325,17 +407,10 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRouteWithChildren,
   SubscribeRoute: SubscribeRoute,
   SupportRoute: SupportRoute,
+  TemplatesSlugRoute: TemplatesSlugRoute,
+  TemplatesIndexRoute: TemplatesIndexRoute,
+  ApiPublicPaymentsSwychrWebhookRoute: ApiPublicPaymentsSwychrWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
