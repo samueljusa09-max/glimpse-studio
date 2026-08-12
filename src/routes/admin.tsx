@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { BarChart3, CreditCard, Headphones, Users, ShieldHalf, ScrollText, ArrowLeft } from "lucide-react";
+import { BarChart3, CreditCard, Headphones, Users, ShieldHalf, ScrollText, ArrowLeft, ToggleRight } from "lucide-react";
 import { useAuth, type AppRole } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/admin")({
