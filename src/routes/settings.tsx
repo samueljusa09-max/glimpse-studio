@@ -22,8 +22,10 @@ import {
   ChevronRight,
   ShieldHalf,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { GrokMark } from "@/components/grok/GrokLogo";
+import { haptic, useFeatureFlags, usePreferences } from "@/hooks/useAppSettings";
 
 export const Route = createFileRoute("/settings")({
   ssr: false,
@@ -33,6 +35,8 @@ export const Route = createFileRoute("/settings")({
       { name: "description", content: "Gérez votre profil, votre abonnement et vos préférences Grok." },
       { property: "og:title", content: "Paramètres — Grok" },
       { property: "og:description", content: "Profil, abonnement et préférences Grok." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Settings,
@@ -41,6 +45,9 @@ export const Route = createFileRoute("/settings")({
 function Settings() {
   const { session, loading, profile, isStaff, signOut } = useAuth();
   const navigate = useNavigate();
+  const { prefs, update } = usePreferences();
+  const { isOn, loaded } = useFeatureFlags();
+  const on = (key: string) => !loaded || isOn(key);
 
   useEffect(() => {
     if (!loading && !session) void navigate({ to: "/auth" });
@@ -48,14 +55,15 @@ function Settings() {
 
   const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || "Utilisateur";
 
+  const save = (patch: Parameters<typeof update>[0]) => {
+    haptic(prefs.haptics);
+    void update(patch).catch((e: Error) => toast.error(e.message));
+  };
+
   return (
     <main className="min-h-[100dvh] bg-background pb-16">
       <header className="sticky top-0 z-10 flex items-center gap-3 bg-background/90 px-4 py-4 backdrop-blur">
-        <Link
-          to="/"
-          aria-label="Fermer"
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-surface"
-        >
+        <Link to="/" aria-label="Fermer" className="flex h-10 w-10 items-center justify-center rounded-full bg-surface">
           <X className="h-5 w-5" />
         </Link>
         <h1 className="flex-1 text-center text-xl font-semibold">Paramètres</h1>
@@ -80,10 +88,7 @@ function Settings() {
 
         <section>
           <SectionTitle>Abonnement</SectionTitle>
-          <Link
-            to="/subscribe"
-            className="supergrok-banner flex items-center gap-3 rounded-full p-3 pl-5"
-          >
+          <Link to="/subscribe" className="supergrok-banner flex items-center gap-3 rounded-full p-3 pl-5">
             <GrokMark className="h-8 w-8 text-brand-foreground" />
             <div className="min-w-0 flex-1 text-brand-foreground">
               <p className="truncate font-semibold">Essayez SuperGrok</p>
@@ -98,30 +103,78 @@ function Settings() {
         <section>
           <SectionTitle>Application</SectionTitle>
           <Group>
-            <Row icon={<Contrast />} label="Apparence" />
-            <Row icon={<Vibrate />} label="Haptique" />
-            <Row icon={<Bell />} label="Notifications" />
-            <Row icon={<LayoutGrid />} label="Widget" />
-            <Row icon={<Globe />} label="Langue de l'application" value="français" />
+            {on("appearance") ? (
+              <SelectRow
+                icon={<Contrast />}
+                label="Apparence"
+                value={prefs.appearance}
+                options={[
+                  ["dark", "Sombre"],
+                  ["light", "Clair"],
+                  ["system", "Système"],
+                ]}
+                onChange={(v) => save({ appearance: v })}
+              />
+            ) : null}
+            {on("haptics") ? (
+              <ToggleRow
+                icon={<Vibrate />}
+                label="Haptique"
+                checked={prefs.haptics}
+                onChange={(v) => save({ haptics: v })}
+              />
+            ) : null}
+            {on("notifications") ? (
+              <ToggleRow
+                icon={<Bell />}
+                label="Notifications"
+                checked={prefs.notifications}
+                onChange={(v) => {
+                  save({ notifications: v });
+                  if (v && typeof Notification !== "undefined") void Notification.requestPermission();
+                }}
+              />
+            ) : null}
+            {on("widget") ? (
+              <ToggleRow
+                icon={<LayoutGrid />}
+                label="Widget"
+                checked={prefs.widget}
+                onChange={(v) => save({ widget: v })}
+              />
+            ) : null}
+            {on("language") ? (
+              <SelectRow
+                icon={<Globe />}
+                label="Langue de l'application"
+                value={prefs.language}
+                options={[
+                  ["fr", "français"],
+                  ["en", "english"],
+                  ["es", "español"],
+                ]}
+                onChange={(v) => save({ language: v })}
+              />
+            ) : null}
           </Group>
         </section>
 
         <section>
           <SectionTitle>Grok</SectionTitle>
           <Group>
-            <Row icon={<SlidersHorizontal />} label="Personnaliser Grok" />
-            <Row icon={<Blocks />} label="Compétences" />
-            <Row icon={<Plug />} label="Connecteurs" />
-            <Row icon={<Atom />} label="Avancé" />
+            {on("customize_grok") ? <Row icon={<SlidersHorizontal />} label="Personnaliser Grok" /> : null}
+            {on("skills") ? <Row icon={<Blocks />} label="Compétences" /> : null}
+            {on("connectors") ? <Row icon={<Plug />} label="Connecteurs" /> : null}
+            {on("advanced") ? <Row icon={<Atom />} label="Avancé" /> : null}
           </Group>
         </section>
 
         <section>
           <SectionTitle>Données et informations</SectionTitle>
           <Group>
-            <Row icon={<Link2 />} label="Conversations partagées" />
-            <Row icon={<Database />} label="Contrôles de données" />
-            <Row icon={<FolderClosed />} label="Stockage" />
+            {on("shared_chats") ? <Row icon={<Link2 />} label="Conversations partagées" /> : null}
+            {on("data_controls") ? <Row icon={<Database />} label="Contrôles de données" /> : null}
+            {on("storage") ? <Row icon={<FolderClosed />} label="Stockage" /> : null}
           </Group>
         </section>
 
@@ -162,14 +215,81 @@ function Settings() {
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="mb-2 px-2 text-sm font-medium uppercase tracking-wide text-muted-foreground">
-      {children}
-    </h2>
+    <h2 className="mb-2 px-2 text-sm font-medium uppercase tracking-wide text-muted-foreground">{children}</h2>
   );
 }
 
 function Group({ children }: { children: React.ReactNode }) {
   return <div className="grok-card divide-y divide-border overflow-hidden">{children}</div>;
+}
+
+function RowShell({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-4 px-4 py-4">
+      <span className="text-muted-foreground [&>svg]:h-5 [&>svg]:w-5">{icon}</span>
+      <span className="flex-1 text-lg">{label}</span>
+      {children}
+    </div>
+  );
+}
+
+function ToggleRow({
+  icon,
+  label,
+  checked,
+  onChange,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <RowShell icon={icon} label={label}>
+      <button
+        role="switch"
+        aria-checked={checked}
+        aria-label={label}
+        onClick={() => onChange(!checked)}
+        className={`h-7 w-12 rounded-full p-1 transition ${checked ? "bg-success" : "bg-surface-2"}`}
+      >
+        <span
+          className={`block h-5 w-5 rounded-full bg-white transition-transform ${checked ? "translate-x-5" : ""}`}
+        />
+      </button>
+    </RowShell>
+  );
+}
+
+function SelectRow({
+  icon,
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  options: readonly (readonly [string, string])[];
+  onChange: (v: string) => void;
+}) {
+  return (
+    <RowShell icon={icon} label={label}>
+      <select
+        aria-label={label}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="rounded-full bg-surface px-3 py-1.5 text-sm text-foreground outline-none"
+      >
+        {options.map(([v, l]) => (
+          <option key={v} value={v}>
+            {l}
+          </option>
+        ))}
+      </select>
+    </RowShell>
+  );
 }
 
 function Row({
@@ -198,5 +318,12 @@ function Row({
       </Link>
     );
   }
-  return <button className="flex w-full items-center gap-4 px-4 py-4 text-left">{content}</button>;
+  return (
+    <button
+      onClick={() => toast("Bientôt disponible")}
+      className="flex w-full items-center gap-4 px-4 py-4 text-left"
+    >
+      {content}
+    </button>
+  );
 }
