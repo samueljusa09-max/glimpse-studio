@@ -49,7 +49,7 @@ function Team() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("team_invites")
-        .select("id, email, role, status, created_at")
+        .select("id, email, role, accepted_at, created_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
@@ -174,7 +174,7 @@ function Team() {
             <div key={i.id} className="flex items-center justify-between p-4 text-sm">
               <span>{i.email}</span>
               <span className="text-xs text-muted-foreground">
-                {ROLES.find((r) => r.value === i.role)?.label} · {i.status}
+                {ROLES.find((r) => r.value === i.role)?.label} · {i.accepted_at ? "acceptée" : "en attente"}
               </span>
             </div>
           ))}
