@@ -62,6 +62,42 @@ export type Database = {
         }
         Relationships: []
       }
+      feature_flags: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          enabled: boolean
+          id: string
+          key: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          key: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          key?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
@@ -108,7 +144,10 @@ export type Database = {
       }
       plans: {
         Row: {
+          annual_price: number
+          badge: string | null
           created_at: string
+          cta_label: string
           currency: string
           description: string | null
           features: Json
@@ -121,11 +160,17 @@ export type Database = {
           price: number
           slug: string
           sort_order: number
+          tagline: string | null
+          tier: string
+          trial_days: number
           updated_at: string
           video_quota: number
         }
         Insert: {
+          annual_price?: number
+          badge?: string | null
           created_at?: string
+          cta_label?: string
           currency?: string
           description?: string | null
           features?: Json
@@ -138,11 +183,17 @@ export type Database = {
           price?: number
           slug: string
           sort_order?: number
+          tagline?: string | null
+          tier?: string
+          trial_days?: number
           updated_at?: string
           video_quota?: number
         }
         Update: {
+          annual_price?: number
+          badge?: string | null
           created_at?: string
+          cta_label?: string
           currency?: string
           description?: string | null
           features?: Json
@@ -155,6 +206,9 @@ export type Database = {
           price?: number
           slug?: string
           sort_order?: number
+          tagline?: string | null
+          tier?: string
+          trial_days?: number
           updated_at?: string
           video_quota?: number
         }
@@ -362,6 +416,36 @@ export type Database = {
           id?: string
           kind?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_preferences: {
+        Row: {
+          appearance: string
+          haptics: boolean
+          language: string
+          notifications: boolean
+          updated_at: string
+          user_id: string
+          widget: boolean
+        }
+        Insert: {
+          appearance?: string
+          haptics?: boolean
+          language?: string
+          notifications?: boolean
+          updated_at?: string
+          user_id: string
+          widget?: boolean
+        }
+        Update: {
+          appearance?: string
+          haptics?: boolean
+          language?: string
+          notifications?: boolean
+          updated_at?: string
+          user_id?: string
+          widget?: boolean
         }
         Relationships: []
       }
