@@ -8,20 +8,8 @@ const input = z.object({
   returnUrl: z.string().url(),
 });
 
-type SwychrToken = { auth_token?: string; token?: string; data?: { auth_token?: string; token?: string } };
+const DEFAULT_BASE = "https://api.accountpe.com/api";
 
-async function swychrToken(base: string, email: string, password: string) {
-  const res = await fetch(`${base}/api/admin/auth`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-  if (!res.ok) throw new Error(`Swychr auth: ${res.status} ${await res.text()}`);
-  const json = (await res.json()) as SwychrToken;
-  const token = json.auth_token ?? json.token ?? json.data?.auth_token ?? json.data?.token;
-  if (!token) throw new Error("Swychr: jeton d'authentification introuvable");
-  return token;
-}
 
 /** Crée un lien de paiement Swychr et enregistre la commande en base. */
 export const createSwychrCheckout = createServerFn({ method: "POST" })
@@ -58,21 +46,18 @@ export const createSwychrCheckout = createServerFn({ method: "POST" })
       .maybeSingle();
     if (payErr) throw new Error(payErr.message);
 
-    const email = process.env["SWYCHR_EMAIL"];
-    const password = process.env["SWYCHR_PASSWORD"];
-    const base = process.env["SWYCHR_BASE_URL"] ?? "https://api.accountpay.africa";
+    const apiKey = process.env["SWYCHR_API_KEY"];
+    const base = process.env["SWYCHR_BASE_URL"] ?? DEFAULT_BASE;
 
-    if (!email || !password) {
+    if (!apiKey) {
       return {
         ok: false as const,
         paymentId: payment?.id ?? null,
         reference,
         message:
-          "Les identifiants Swychr ne sont pas encore configurés. La commande a été enregistrée en attente.",
+          "La clé API Swychr n'est pas encore configurée. La commande a été enregistrée en attente.",
       };
     }
-
-    const token = await swychrToken(base, email, password);
 
     const { data: profile } = await supabase
       .from("profiles")
@@ -80,9 +65,10 @@ export const createSwychrCheckout = createServerFn({ method: "POST" })
       .eq("id", userId)
       .maybeSingle();
 
-    const res = await fetch(`${base}/api/payin/create_payment_links`, {
+    const res = await fetch(`${base}/swychpay/create_payment_links`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      headers: { "Content-Type": "application/json", "Api-Key": apiKey },
+
       body: JSON.stringify({
         country_code: process.env["SWYCHR_COUNTRY_CODE"] ?? "CM",
         name: [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || "Client",
