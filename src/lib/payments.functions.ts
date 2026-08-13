@@ -8,20 +8,8 @@ const input = z.object({
   returnUrl: z.string().url(),
 });
 
-type SwychrToken = { auth_token?: string; token?: string; data?: { auth_token?: string; token?: string } };
+const DEFAULT_BASE = "https://api.accountpe.com/api";
 
-async function swychrToken(base: string, email: string, password: string) {
-  const res = await fetch(`${base}/api/admin/auth`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-  if (!res.ok) throw new Error(`Swychr auth: ${res.status} ${await res.text()}`);
-  const json = (await res.json()) as SwychrToken;
-  const token = json.auth_token ?? json.token ?? json.data?.auth_token ?? json.data?.token;
-  if (!token) throw new Error("Swychr: jeton d'authentification introuvable");
-  return token;
-}
 
 /** Crée un lien de paiement Swychr et enregistre la commande en base. */
 export const createSwychrCheckout = createServerFn({ method: "POST" })
