@@ -46,21 +46,18 @@ export const createSwychrCheckout = createServerFn({ method: "POST" })
       .maybeSingle();
     if (payErr) throw new Error(payErr.message);
 
-    const email = process.env["SWYCHR_EMAIL"];
-    const password = process.env["SWYCHR_PASSWORD"];
-    const base = process.env["SWYCHR_BASE_URL"] ?? "https://api.accountpay.africa";
+    const apiKey = process.env["SWYCHR_API_KEY"];
+    const base = process.env["SWYCHR_BASE_URL"] ?? DEFAULT_BASE;
 
-    if (!email || !password) {
+    if (!apiKey) {
       return {
         ok: false as const,
         paymentId: payment?.id ?? null,
         reference,
         message:
-          "Les identifiants Swychr ne sont pas encore configurés. La commande a été enregistrée en attente.",
+          "La clé API Swychr n'est pas encore configurée. La commande a été enregistrée en attente.",
       };
     }
-
-    const token = await swychrToken(base, email, password);
 
     const { data: profile } = await supabase
       .from("profiles")
@@ -68,9 +65,10 @@ export const createSwychrCheckout = createServerFn({ method: "POST" })
       .eq("id", userId)
       .maybeSingle();
 
-    const res = await fetch(`${base}/api/payin/create_payment_links`, {
+    const res = await fetch(`${base}/swychpay/create_payment_links`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      headers: { "Content-Type": "application/json", "Api-Key": apiKey },
+
       body: JSON.stringify({
         country_code: process.env["SWYCHR_COUNTRY_CODE"] ?? "CM",
         name: [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || "Client",
