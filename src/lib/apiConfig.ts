@@ -42,6 +42,12 @@ export async function logAudit(action: string, target?: string, details: Record<
   });
 }
 
-export function formatMoney(amount: number, currency = "USD") {
-  return new Intl.NumberFormat("fr-FR", { style: "currency", currency }).format(amount);
+export function formatMoney(amount: number, currency?: string | null) {
+  const code = (currency ?? "USD").trim().toUpperCase();
+  const safe = /^[A-Z]{3}$/.test(code) ? code : "USD";
+  try {
+    return new Intl.NumberFormat("fr-FR", { style: "currency", currency: safe }).format(amount);
+  } catch {
+    return `${amount.toFixed(2)} ${safe}`;
+  }
 }
