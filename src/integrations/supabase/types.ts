@@ -98,6 +98,45 @@ export type Database = {
         }
         Relationships: []
       }
+      generations: {
+        Row: {
+          created_at: string
+          error: string | null
+          id: string
+          kind: string
+          params: Json
+          prompt: string
+          status: string
+          storage_path: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          kind: string
+          params?: Json
+          prompt: string
+          status?: string
+          storage_path?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          kind?: string
+          params?: Json
+          prompt?: string
+          status?: string
+          storage_path?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
@@ -227,6 +266,7 @@ export type Database = {
           status: Database["public"]["Enums"]["account_status"]
           updated_at: string
           username: string | null
+          welcome_email_sent_at: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -240,6 +280,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["account_status"]
           updated_at?: string
           username?: string | null
+          welcome_email_sent_at?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -253,6 +294,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["account_status"]
           updated_at?: string
           username?: string | null
+          welcome_email_sent_at?: string | null
         }
         Relationships: []
       }
@@ -338,6 +380,7 @@ export type Database = {
       support_tickets: {
         Row: {
           assigned_to: string | null
+          category: string
           created_at: string
           id: string
           last_message_at: string
@@ -348,6 +391,7 @@ export type Database = {
         }
         Insert: {
           assigned_to?: string | null
+          category?: string
           created_at?: string
           id?: string
           last_message_at?: string
@@ -358,6 +402,7 @@ export type Database = {
         }
         Update: {
           assigned_to?: string | null
+          category?: string
           created_at?: string
           id?: string
           last_message_at?: string
