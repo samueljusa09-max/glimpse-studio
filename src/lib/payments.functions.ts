@@ -86,11 +86,19 @@ export const createSwychrCheckout = createServerFn({ method: "POST" })
     if (!res.ok) throw new Error(`Swychr: ${res.status} ${raw}`);
 
     const json = JSON.parse(raw) as {
-      data?: { payment_url?: string; link?: string; url?: string };
+      data?: { payment_url?: string; link?: string; url?: string; id?: number | string };
       payment_url?: string;
     };
-    const url = json.data?.payment_url ?? json.data?.link ?? json.data?.url ?? json.payment_url;
+    const checkoutBase = process.env["SWYCHR_CHECKOUT_URL"] ?? "https://app.swychrconnect.com/payment";
+    const id = json.data?.id;
+    const url =
+      json.data?.payment_url ??
+      json.data?.link ??
+      json.data?.url ??
+      json.payment_url ??
+      (id != null ? `${checkoutBase}/${id}` : undefined);
     if (!url) throw new Error("Swychr: lien de paiement absent de la réponse");
+
 
     return { ok: true as const, url, reference, paymentId: payment?.id ?? null };
   });
