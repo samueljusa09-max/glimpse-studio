@@ -65,6 +65,11 @@ export const createSwychrCheckout = createServerFn({ method: "POST" })
       .eq("id", userId)
       .maybeSingle();
 
+    // Swychr encaisse en devise locale (XAF). Conversion si le plan est en USD/EUR.
+    const rate = Number(process.env["SWYCHR_RATE_PER_USD"] ?? 600);
+    const cur = (plan.currency ?? "USD").toUpperCase();
+    const localAmount = cur === "XAF" || cur === "XOF" ? amount : amount * rate;
+
     const res = await fetch(`${base}/swychpay/create_payment_links`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Api-Key": apiKey },
@@ -74,7 +79,7 @@ export const createSwychrCheckout = createServerFn({ method: "POST" })
         name: [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || "Client",
         email: profile?.email ?? "",
         mobile: "",
-        amount: Math.round(amount),
+        amount: Math.max(1, Math.round(localAmount)),
         transaction_id: reference,
         description: `${plan.name} (${data.cycle === "year" ? "annuel" : "mensuel"})`,
         pass_digital_charge: true,
@@ -89,16 +94,35 @@ export const createSwychrCheckout = createServerFn({ method: "POST" })
       data?: { payment_url?: string; link?: string; url?: string; id?: number | string };
       payment_url?: string;
     };
-    const checkoutBase = process.env["SWYCHR_CHECKOUT_URL"] ?? "https://app.swychrconnect.com/payment";
-    const id = json.data?.id;
-    const url =
-      json.data?.payment_url ??
-      json.data?.link ??
-      json.data?.url ??
-      json.payment_url ??
-      (id != null ? `${checkoutBase}/${id}` : undefined);
-    if (!url) throw new Error("Swychr: lien de paiement absent de la réponse");
 
+    let url = json.data?.payment_url ?? json.data?.link ?? json.data?.url ?? json.payment_url;
+
+    // L'API ne renvoie qu'un id : on récupère l'URL publique (payment_uuid) via la liste.
+    if (!url) {
+      const listRes = await fetch(`${base}/swychpay/payment_link_list`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Api-Key": apiKey },
+        body: JSON.stringify({}),
+      });
+      if (listRes.ok) {
+        const list = (await listRes.json()) as {
+          data?: { data?: Array<{ attributes?: { transaction_id?: string; payment_uuid?: string; id?: number } }> };
+        };
+        const items = list.data?.data ?? [];
+        const match =
+          items.find((i) => i.attributes?.transaction_id === reference) ??
+          items.find((i) => String(i.attributes?.id) === String(json.data?.id));
+        const uuid = match?.attributes?.payment_uuid;
+        if (uuid) {
+          url = uuid.startsWith("http")
+            ? uuid
+            : `${process.env["SWYCHR_CHECKOUT_URL"] ?? "https://app.swychrconnect.com/payment"}/${uuid}`;
+        }
+      }
+    }
+
+    if (!url) throw new Error("Swychr: lien de paiement absent de la réponse");
 
     return { ok: true as const, url, reference, paymentId: payment?.id ?? null };
   });
+
