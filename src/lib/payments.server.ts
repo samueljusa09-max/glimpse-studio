@@ -170,3 +170,46 @@ export function normalizeStatus(raw: string): "paid" | "failed" | "cancelled" | 
   if (s.includes("fail") || s.includes("declin") || s.includes("error")) return "failed";
   return "pending";
 }
+
+/**
+ * Applique un statut de manière idempotente : un paiement déjà "paid"
+ * n'est jamais retraité, l'abonnement n'est activé qu'une seule fois.
+ */
+export async function applyPaymentStatus(
+  admin: AdminClient,
+  reference: string,
+  status: "paid" | "failed" | "cancelled" | "expired" | "pending",
+  gatewayTransactionId?: string | null,
+) {
+  const { data: payment } = await admin
+    .from("payments")
+    .select("id, user_id, plan_id, status, cycle")
+    .eq("reference", reference)
+    .maybeSingle();
+
+  if (!payment) return { found: false as const, status: null };
+  if (payment.status === "paid") return { found: true as const, status: "paid" as const }; // idempotent
+  if (status === "pending") return { found: true as const, status: payment.status as string };
+
+  const patch: Record<string, unknown> = { status };
+  if (gatewayTransactionId) patch["gateway_transaction_id"] = gatewayTransactionId;
+  if (status === "paid") patch["paid_at"] = new Date().toISOString();
+  await admin.from("payments").update(patch).eq("id", payment.id).neq("status", "paid");
+
+  if (status === "paid") {
+    const end = new Date();
+    if (payment.cycle === "year") end.setFullYear(end.getFullYear() + 1);
+    else end.setMonth(end.getMonth() + 1);
+    await admin.from("subscriptions").upsert(
+      {
+        user_id: payment.user_id,
+        plan_id: payment.plan_id,
+        status: "active",
+        current_period_end: end.toISOString(),
+      },
+      { onConflict: "user_id" },
+    );
+  }
+
+  return { found: true as const, status };
+}
