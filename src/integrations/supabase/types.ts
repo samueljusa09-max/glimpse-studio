@@ -62,6 +62,33 @@ export type Database = {
         }
         Relationships: []
       }
+      exchange_rates: {
+        Row: {
+          base: string
+          currency: string
+          fetched_at: string
+          id: string
+          rate: number
+          source: string
+        }
+        Insert: {
+          base?: string
+          currency: string
+          fetched_at?: string
+          id?: string
+          rate: number
+          source?: string
+        }
+        Update: {
+          base?: string
+          currency?: string
+          fetched_at?: string
+          id?: string
+          rate?: number
+          source?: string
+        }
+        Relationships: []
+      }
       feature_flags: {
         Row: {
           category: string
@@ -137,13 +164,128 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_countries: {
+        Row: {
+          code: string
+          created_at: string
+          currency: string
+          dial_code: string
+          flag: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          currency: string
+          dial_code?: string
+          flag?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          currency?: string
+          dial_code?: string
+          flag?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      payment_methods: {
+        Row: {
+          code: string
+          country_code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          kind: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          country_code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          kind?: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          country_code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          kind?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_methods_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "payment_countries"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      payment_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
+          checkout_url: string | null
+          converted_amount: number
+          country_code: string | null
           created_at: string
           currency: string
+          cycle: string
+          error_message: string | null
+          exchange_rate: number
+          fee_amount: number
+          gateway_transaction_id: string | null
           id: string
+          mobile_number: string | null
+          original_amount_usd: number
+          paid_at: string | null
+          payment_channel: string
+          payment_method: string | null
           plan_id: string | null
+          plan_name: string | null
           provider: string
           reference: string | null
           status: string
@@ -151,10 +293,24 @@ export type Database = {
         }
         Insert: {
           amount?: number
+          checkout_url?: string | null
+          converted_amount?: number
+          country_code?: string | null
           created_at?: string
           currency?: string
+          cycle?: string
+          error_message?: string | null
+          exchange_rate?: number
+          fee_amount?: number
+          gateway_transaction_id?: string | null
           id?: string
+          mobile_number?: string | null
+          original_amount_usd?: number
+          paid_at?: string | null
+          payment_channel?: string
+          payment_method?: string | null
           plan_id?: string | null
+          plan_name?: string | null
           provider?: string
           reference?: string | null
           status?: string
@@ -162,10 +318,24 @@ export type Database = {
         }
         Update: {
           amount?: number
+          checkout_url?: string | null
+          converted_amount?: number
+          country_code?: string | null
           created_at?: string
           currency?: string
+          cycle?: string
+          error_message?: string | null
+          exchange_rate?: number
+          fee_amount?: number
+          gateway_transaction_id?: string | null
           id?: string
+          mobile_number?: string | null
+          original_amount_usd?: number
+          paid_at?: string | null
+          payment_channel?: string
+          payment_method?: string | null
           plan_id?: string | null
+          plan_name?: string | null
           provider?: string
           reference?: string | null
           status?: string
