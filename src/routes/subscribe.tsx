@@ -1,22 +1,25 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft, Check, Loader2, ShieldCheck, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { formatMoney } from "@/lib/apiConfig";
-import { createSwychrCheckout } from "@/lib/payments.functions";
+import { createCheckout, getPaymentQuote } from "@/lib/payments.functions";
 
 export const Route = createFileRoute("/subscribe")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "S'abonner à SuperGrok — Grok" },
-      { name: "description", content: "Choisissez votre formule SuperGrok et payez en toute sécurité via Swychr." },
-      { property: "og:title", content: "S'abonner à SuperGrok" },
-      { property: "og:description", content: "SuperGrok, Plus et Heavy : créez sans limites." },
+      { title: "S'abonner à Sam Flash 2.0" },
+      {
+        name: "description",
+        content: "Choisissez votre formule Sam Flash 2.0 et payez par mobile money en toute sécurité.",
+      },
+      { property: "og:title", content: "S'abonner à Sam Flash 2.0" },
+      { property: "og:description", content: "Formules Sam Flash : créez images et vidéos sans limites." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -24,12 +27,26 @@ export const Route = createFileRoute("/subscribe")({
   component: Subscribe,
 });
 
+type Country = {
+  code: string;
+  name: string;
+  flag: string;
+  dial_code: string;
+  currency: string;
+};
+
+type Method = {
+  code: string;
+  label: string;
+  kind: string;
+  country_code: string;
+};
+
 function Subscribe() {
   const { session, loading } = useAuth();
   const navigate = useNavigate();
-  const [pending, setPending] = useState<string | null>(null);
   const [cycle, setCycle] = useState<"month" | "year">("month");
-  const checkout = useServerFn(createSwychrCheckout);
+  const [planId, setPlanId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !session) void navigate({ to: "/auth" });
@@ -38,33 +55,13 @@ function Subscribe() {
   const { data: plans } = useQuery({
     queryKey: ["plans", "active"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("plans")
-        .select("*")
-        .eq("is_active", true)
-        .order("sort_order");
+      const { data, error } = await supabase.from("plans").select("*").eq("is_active", true).order("sort_order");
       if (error) throw error;
       return data;
     },
   });
 
-  const subscribe = async (planId: string) => {
-    setPending(planId);
-    try {
-      const res = await checkout({
-        data: { planId, cycle, returnUrl: `${window.location.origin}/subscribe` },
-      });
-      if (res.ok && res.url) {
-        window.location.href = res.url;
-        return;
-      }
-      toast.info(res.message ?? "Commande enregistrée.");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Paiement indisponible");
-    } finally {
-      setPending(null);
-    }
-  };
+  const plan = (plans ?? []).find((p) => p.id === planId) ?? null;
 
   return (
     <main className="min-h-[100dvh] bg-background pb-16">
@@ -134,11 +131,10 @@ function Subscribe() {
               </ul>
 
               <button
-                onClick={() => void subscribe(p.id)}
-                disabled={pending === p.id}
-                className="supergrok-banner mt-5 w-full rounded-full py-3.5 font-semibold text-brand-foreground disabled:opacity-60"
+                onClick={() => setPlanId(p.id)}
+                className="supergrok-banner mt-5 w-full rounded-full py-3.5 font-semibold text-brand-foreground"
               >
-                {pending === p.id ? "Redirection…" : p.cta_label}
+                {p.cta_label}
               </button>
               {p.trial_days > 0 ? (
                 <p className="mt-2 text-center text-xs text-muted-foreground">
@@ -151,8 +147,231 @@ function Subscribe() {
       </div>
 
       <p className="mt-6 px-6 text-center text-xs text-muted-foreground">
-        Paiement sécurisé via Swychr. Les prix sont définis depuis le bureau d'administration.
+        Paiement mobile money sécurisé. Le montant exact est calculé par nos serveurs dans votre devise locale.
       </p>
+
+      {plan ? (
+        <CheckoutSheet
+          planId={plan.id}
+          planName={plan.name}
+          cycle={cycle}
+          onClose={() => setPlanId(null)}
+        />
+      ) : null}
     </main>
+  );
+}
+
+function CheckoutSheet({
+  planId,
+  planName,
+  cycle,
+  onClose,
+}: {
+  planId: string;
+  planName: string;
+  cycle: "month" | "year";
+  onClose: () => void;
+}) {
+  const quoteFn = useServerFn(getPaymentQuote);
+  const checkoutFn = useServerFn(createCheckout);
+
+  const [countryCode, setCountryCode] = useState<string>("");
+  const [methodCode, setMethodCode] = useState<string>("");
+  const [localNumber, setLocalNumber] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const { data: countries } = useQuery({
+    queryKey: ["pay-countries"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("payment_countries")
+        .select("code, name, flag, dial_code, currency")
+        .eq("is_active", true)
+        .order("sort_order");
+      if (error) throw error;
+      return data as Country[];
+    },
+  });
+
+  useEffect(() => {
+    if (!countryCode && countries?.length) setCountryCode(countries[0]!.code);
+  }, [countries, countryCode]);
+
+  const { data: methods } = useQuery({
+    queryKey: ["pay-methods", countryCode],
+    enabled: !!countryCode,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("payment_methods")
+        .select("code, label, kind, country_code")
+        .eq("country_code", countryCode)
+        .eq("is_active", true)
+        .order("sort_order");
+      if (error) throw error;
+      return data as Method[];
+    },
+  });
+
+  useEffect(() => {
+    if (methods?.length) setMethodCode((m) => (methods.some((x) => x.code === m) ? m : methods[0]!.code));
+    else setMethodCode("");
+  }, [methods]);
+
+  const country = useMemo(() => countries?.find((c) => c.code === countryCode) ?? null, [countries, countryCode]);
+
+  const {
+    data: quote,
+    isFetching: quoteLoading,
+    error: quoteError,
+  } = useQuery({
+    queryKey: ["pay-quote", planId, cycle, countryCode],
+    enabled: !!countryCode,
+    retry: false,
+    staleTime: 60_000,
+    queryFn: () => quoteFn({ data: { planId, cycle, countryCode } }),
+  });
+
+  const digits = localNumber.replace(/\D/g, "");
+  const fullNumber = country ? `${country.dial_code.replace("+", "")}${digits.replace(/^0+/, "")}` : digits;
+  const numberValid = digits.length >= 8 && digits.length <= 12;
+
+  const submit = async () => {
+    if (!numberValid || !methodCode || !country) return;
+    setSubmitting(true);
+    try {
+      const res = await checkoutFn({
+        data: {
+          planId,
+          cycle,
+          countryCode: country.code,
+          methodCode,
+          mobileNumber: fullNumber,
+          returnUrl: `${window.location.origin}/payment-status`,
+        },
+      });
+      if (res.ok && res.url) {
+        sessionStorage.setItem("sf_last_ref", res.reference);
+        window.location.href = res.url;
+        return;
+      }
+      toast.error("Lien de paiement indisponible, réessayez.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Paiement indisponible");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end bg-black/70" role="dialog" aria-modal="true">
+      <div className="max-h-[92dvh] w-full overflow-y-auto rounded-t-3xl bg-surface p-5 pb-8">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Paiement — {planName}</h2>
+          <button onClick={onClose} aria-label="Fermer" className="rounded-full p-2">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <label className="block text-sm">
+          <span className="text-muted-foreground">Pays</span>
+          <select
+            value={countryCode}
+            onChange={(e) => setCountryCode(e.target.value)}
+            className="mt-1 w-full rounded-xl bg-background px-3 py-3 text-base outline-none"
+          >
+            {(countries ?? []).map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.flag} {c.name} ({c.currency})
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <div className="mt-4">
+          <span className="text-sm text-muted-foreground">Moyen de paiement</span>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            {(methods ?? []).map((m) => (
+              <button
+                key={m.code}
+                onClick={() => setMethodCode(m.code)}
+                className={`rounded-xl px-3 py-3 text-sm transition ${
+                  methodCode === m.code
+                    ? "bg-primary font-semibold text-primary-foreground"
+                    : "bg-background text-foreground"
+                }`}
+              >
+                {m.label}
+              </button>
+            ))}
+            {(methods ?? []).length === 0 ? (
+              <p className="col-span-2 text-sm text-muted-foreground">
+                Aucun moyen de paiement disponible pour ce pays.
+              </p>
+            ) : null}
+          </div>
+        </div>
+
+        <label className="mt-4 block text-sm">
+          <span className="text-muted-foreground">Numéro mobile money</span>
+          <div className="mt-1 flex items-center gap-2 rounded-xl bg-background px-3">
+            <span className="text-base text-muted-foreground">{country?.dial_code ?? "+"}</span>
+            <input
+              value={localNumber}
+              onChange={(e) => setLocalNumber(e.target.value.replace(/[^\d\s]/g, "").slice(0, 15))}
+              inputMode="numeric"
+              placeholder="812345678"
+              className="w-full bg-transparent py-3 text-base outline-none"
+            />
+          </div>
+          {localNumber && !numberValid ? (
+            <span className="mt-1 block text-xs text-destructive">Numéro invalide.</span>
+          ) : null}
+        </label>
+
+        <div className="mt-5 rounded-2xl bg-background p-4 text-sm">
+          {quoteLoading ? (
+            <p className="flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Calcul du montant…
+            </p>
+          ) : quoteError ? (
+            <p className="text-destructive">
+              {quoteError instanceof Error ? quoteError.message : "Montant indisponible."}
+            </p>
+          ) : quote ? (
+            <>
+              <Row label="Offre" value={`${quote.planName} (${quote.cycle === "year" ? "annuel" : "mensuel"})`} />
+              <Row label="Prix" value={formatMoney(quote.amountUsd, "USD")} />
+              {quote.feeUsd > 0 ? <Row label="Frais" value={formatMoney(quote.feeUsd, "USD")} /> : null}
+              <Row label="Taux" value={`1 USD = ${quote.rate.toLocaleString("fr-FR")} ${quote.currency}`} />
+              <div className="mt-2 flex items-center justify-between border-t border-border pt-2 text-base font-semibold">
+                <span>Total à payer</span>
+                <span>{formatMoney(quote.convertedAmount, quote.currency)}</span>
+              </div>
+            </>
+          ) : null}
+        </div>
+
+        <button
+          onClick={() => void submit()}
+          disabled={submitting || !quote || !numberValid || !methodCode}
+          className="supergrok-banner mt-5 w-full rounded-full py-3.5 font-semibold text-brand-foreground disabled:opacity-50"
+        >
+          {submitting ? "Ouverture du paiement…" : "Payer maintenant"}
+        </button>
+        <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
+          <ShieldCheck className="h-3.5 w-3.5" /> Montant calculé et vérifié côté serveur.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between py-0.5">
+      <span className="text-muted-foreground">{label}</span>
+      <span>{value}</span>
+    </div>
   );
 }
