@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as PaymentStatusRouteImport } from './routes/payment-status'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SubscribeRouteImport } from './routes/subscribe'
 import { Route as SupportRouteImport } from './routes/support'
@@ -40,6 +41,11 @@ const AdminRoute = AdminRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaymentStatusRoute = PaymentStatusRouteImport.update({
+  id: '/payment-status',
+  path: '/payment-status',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -118,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
+  '/payment-status': typeof PaymentStatusRoute
   '/settings': typeof SettingsRouteWithChildren
   '/subscribe': typeof SubscribeRoute
   '/support': typeof SupportRoute
@@ -136,6 +143,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/payment-status': typeof PaymentStatusRoute
   '/settings': typeof SettingsRouteWithChildren
   '/subscribe': typeof SubscribeRoute
   '/support': typeof SupportRoute
@@ -156,6 +164,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
+  '/payment-status': typeof PaymentStatusRoute
   '/settings': typeof SettingsRouteWithChildren
   '/subscribe': typeof SubscribeRoute
   '/support': typeof SupportRoute
@@ -177,6 +186,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/payment-status'
     | '/settings'
     | '/subscribe'
     | '/support'
@@ -195,6 +205,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/payment-status'
     | '/settings'
     | '/subscribe'
     | '/support'
@@ -214,6 +225,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/payment-status'
     | '/settings'
     | '/subscribe'
     | '/support'
@@ -234,6 +246,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
+  PaymentStatusRoute: typeof PaymentStatusRoute
   SettingsRoute: typeof SettingsRouteWithChildren
   SubscribeRoute: typeof SubscribeRoute
   SupportRoute: typeof SupportRoute
@@ -263,6 +276,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payment-status': {
+      id: '/payment-status'
+      path: '/payment-status'
+      fullPath: '/payment-status'
+      preLoaderRoute: typeof PaymentStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -404,6 +424,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
+  PaymentStatusRoute: PaymentStatusRoute,
   SettingsRoute: SettingsRouteWithChildren,
   SubscribeRoute: SubscribeRoute,
   SupportRoute: SupportRoute,
